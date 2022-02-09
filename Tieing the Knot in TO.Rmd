@@ -1,0 +1,146 @@
+---
+title: "Tieing The Knot In Toronto"
+author: "Nicholas Bosco"
+thanks: "[https://github.com/bosconic/bosconic] Link to Githup Repo"
+date: 08/02/2022
+abstract: "Understanding Marriage Licence trends in the City of Toronto over the past eleven years, from 2011 to 2022. By gathering data from 'Open Data Toronto' [@opendatatoronto], we are able to begin recognizing patterns, for Marriage Licence acquisition. This data would be beneficial for a wide variety of fields like: Hospitality/Tourism, Sociology, Government, or for the curious reader (like myself) because with this data we are able to get a new perspective on Marriage Licence trends in the City of Toronto."
+output: pdf_document
+bibliograpgy: bibliography.bib
+---
+
+```{r getting data, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(lubridate)
+library(janitor)
+library(opendatatoronto)
+library(dplyr)
+library(knitr)
+library(bookdown)
+
+
+# source from: https://open.toronto.ca/dataset/marriage-licence-statistics/"
+# get package
+package <- show_package("e28bc818-43d5-43f7-b5d9-bdfb4eda5feb")
+package
+
+# get all resources for this package
+resources <- list_package_resources("e28bc818-43d5-43f7-b5d9-bdfb4eda5feb")
+
+# identify datastore resources; by default, Toronto Open Data sets datastore resource format to CSV for non-geospatial and GeoJSON for geospatial resources
+datastore_resources <- filter(resources, tolower(format) %in% c('csv', 'geojson'))
+
+# load the first datastore resource as a sample
+raw_marriage_data <- filter(datastore_resources, row_number()==1) %>% get_resource()
+raw_marriage_data
+```
+## Introduction
+*"Mawage
+Mawage es vot bwings us togethar- todey.
+Mawage, that bwessed awangement-that dweam... within a dweam!
+and wove, twue wove, will follaw yoo... forevar..."* -Impressive Clergyman, [@citetpb]
+
+As the Impressive Clergyman points out giving his opening remarks, Marriage is the reason why this research has been done. My background as someone who orients themselves towards sharing a space with people, marriage is the life stage that is the transition for many as it is a new chapter with your significant other. My understanding of Marriage has changed over the years, like most individuals the older you get the more complicated things become. However, what is fascinating is that, we can document a Marriage taking place and roughly give an estimate at how many Toronto newly weds there are at a given month. This information would not be possible if it were not for the Open Data Toronto Database and their data on "Marriage Licence Statistics." [@citeopendatatornto]
+
+To give us some footing on how broad the term Marriage can be, I am going to be referring to Martha C. Nussbam's paper "A Right to Marry"[@citenussbam]. In the paper, Nussbam goes into detail about Marriage, and she goes through great lengths defining marriage into three categories: Marriage being a "civil right", Marriage being "Expressive", and finally some Marriages being "religious". [@citenussbam p.669]. Essentially what she tries to draw here is that marriage is multifaceted, it is as if it is in a web with those three categories mentioned above. What I try to accomplish is to present the numbers collected by the City of Toronto, to give another perspective to the discussion about Marriage, as this research can be a stepping stone for other people in other fields who have some contact with the Marriage industry.
+
+Before we get into the data, I just have one more point I would like to leave the reader with. Even though the data was gathered from a city data base, if you are ever wondering where to find more information on marriage statistics, I would suggest you take a look at the other levels of government like the provincial and federal, as they have the scope and capacity to plot out a lot more interactions than the ones made here.
+
+
+## Data
+This data was downloaded from the Marriage License Statistics Data from Open Data Toronto [@citeopendatatoronto] from 2011-2022.
+
+I have categorized the relationship between number of marriage licenses given by the civic centers on the Y-axis and The X-axis contains each month of the year.The reason being is that I wanted to see if there was an overall trend between the two variables. See graph one below 
+
+As we look at the graph we notice that June has the highest amount of marriage licenses being given. As we try to find more patterns in the data, we begin to see people want to marry during the late spring early summer months, those being May, June and July.Finally
+we can also see which months less people receive licenses and that is between January, February and December.
+
+When constructing the graph something I had realized when plotting out the results was that I took the data as reported from the Toronto Civic Centers, who have the capacity to fulfill marriage licenses. But the way the data was collected had raised a few concerns. One concern is though that I am not too sure how the Civic Centre defines the marriage (but I am guessing it is more for a civil sense). A secondary concern is that the data does not give away the key characteristics of the people who are receiving their Licenses. By key characteristics (I mean age,gender,ethnicity, religion). And for the scope for the city that is okay but maybe this more detailed data collection is taken care of in the higher branches of government.
+
+```{r cleaning, echo=FALSE, message=FALSE, include=FALSE}
+#basic clean for data then create clean csv #
+cleaned_marriage_data <-
+  clean_names(raw_marriage_data)
+# head(cleaned_marriage_data)
+
+# write and clean new csv #
+write_csv(
+  x = cleaned_marriage_data,
+  file = "cleaned_marriage_data.csv"
+)
+
+read_csv(
+  file = "cleaned_marriage_data.csv",
+  show_col_types = FALSE
+)
+
+# monthly marriage stat, simple separation #
+separated_marriage_data1 <-
+cleaned_marriage_data |>
+  separate(col = time_period,
+           into =c("year", "month"),
+           sep = "-")
+write_csv(
+  x = separated_marriage_data1,
+  file = "separated_marriage_data1.csv"
+)
+
+read_csv(
+  file =  "separated_marriage_data1.csv",
+  show_col_types = FALSE
+)
+```
+
+```{r licenses, echo=FALSE, fig.cap="Marrige Licenses given per month", message=FALSE, warning=FALSE}
+# generate graph #
+  separated_marriage_data1 |>
+ ggplot(aes(x= month, y = marriage_licenses)) +
+   geom_bar(stat = "identity") +
+   labs(title = "Total Marriage Licences Given In Toronto Per Month from 2011 to Present",
+         x = "Month",
+         y = "Number of Marriage Licences",
+        caption = "Data source: OpendataTO")
+
+ # graph shows which month has the most licences given Jun #
+```
+
+
+```{r married, echo=FALSE, message=FALSE}
+#giving the people a table to compliment the graph #
+
+# yearly average of licences given #
+Average_marry_licenses <-
+separated_marriage_data1 |>
+  group_by(civic_centre, year) |>
+  summarise(average = mean(marriage_licenses))
+
+
+# table of average marriages in TO by year #
+Average_marry_licenses %>%
+  select(civic_centre,year,average) %>%
+  knitr::kable(
+    caption = "Yearly Averages of Marriage",
+    col.names = c("Civic Centre","Year", "Average Marriage Licenses"),
+    booktabs = TRUE,
+    linesep = ""
+  )
+```
+
+# Interpreting the Table
+This table shows the average marriage license given out in a given year \@ref(tab:married)
+
+Some major findings from the table include:
+The lowest average number of Marriage Licenses given out in a year at a particular centre which happens to be the Civic Centre "ET" in the year 2021. I suspect this may have to do with COVID-19 as Toronto was in a lock down so people could not gather in the Civic Centers to get their Marriage Licenses. The Civic Centre that has given the most marriage Licenses in a given year is the civic centre "TO" in the year 2021 had the highest average of marriage licences given which was about 930 licenses given.With these two averages at different civic centres we can conclude during the pandemic there were limted civic centres open during the year 2021. The very large gap between the two averages could also affect how we interpret the data because people may assume near the ET civic centre no one is going to recieve their Marriage Licenses but this is not true, it could be that the one specific centre was closed for a longer period of time to limit the spread of COVID-19.
+
+```{r message, include=FALSE}
+citation("tidyr")
+citation("tidyverse")
+citation("lubridate")
+citation("janitor")
+citation("opendatatoronto")
+citation("dplyr")
+citation("knitr")
+citation("bookdown")
+citation()
+```
+
